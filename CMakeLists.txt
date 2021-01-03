@@ -24,6 +24,7 @@ set(EXTERN_LIBS
 
 set(VULKAN_SRC
     src/main.cpp
+    src/application.cpp
 )
 
 add_executable(vulkan ${VULKAN_SRC})
