@@ -12,5 +12,11 @@ private:
 	void cleanup();
 
 private:
+	void create_instance();
+	std::vector<VkExtensionProperties> instance_extensions();
+
+private:
 	GLFWwindow* _window;
+
+	VkInstance _instance;
 };
