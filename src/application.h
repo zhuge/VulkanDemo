@@ -18,6 +18,10 @@ private:
 	template <class Itor>
 	bool check_extensions_support(Itor first, Itor last, const char* layer_name = nullptr);
 
+	std::vector<VkLayerProperties> layers();
+	template <class Itor>
+	bool check_layers_support(Itor first, Itor last);
+
 private:
 	GLFWwindow* _window;
 

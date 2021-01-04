@@ -8,6 +8,16 @@
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
 
+static const std::vector<const char*> validation_layers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
+#ifdef NDEBUG
+    static const bool enable_validation_layers = false;
+#else
+    static const bool enable_validation_layers = true;
+#endif
+
 void Application::run() {
 	init_window();
 	init_vulkan();
@@ -68,8 +78,16 @@ void Application::create_instance() {
 	}
 
 	// layers
-	create_info.enabledLayerCount = 0;
-
+	if (enable_validation_layers) {
+		if (!check_layers_support(validation_layers.begin(), validation_layers.end())) {
+			throw std::runtime_error("validation layers not supported!");
+		}
+		create_info.ppEnabledLayerNames = validation_layers.data();
+		create_info.enabledLayerCount = validation_layers.size();
+	} else {
+		create_info.enabledLayerCount = 0;
+	}
+	
 	if (vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create instance!");
 	}
@@ -82,10 +100,6 @@ std::vector<VkExtensionProperties> Application::extensions(const char* layer_nam
 	std::vector<VkExtensionProperties> extensions(extension_count);
 	vkEnumerateInstanceExtensionProperties(layer_name, &extension_count, extensions.data());
 
-	for (auto& p : extensions) {
-		std::cout << p.extensionName << std::endl;
-	}
-
 	return std::move(extensions);
 }
 
@@ -97,6 +111,31 @@ bool Application::check_extensions_support(Itor first, Itor last, const char* la
 		if (find_if(all_extensions.begin(), all_extensions.end(), [extension_name = *first](VkExtensionProperties& p) {
 				return strcmp(p.extensionName, extension_name) == 0;
 			}) == all_extensions.end()) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+std::vector<VkLayerProperties> Application::layers() {
+	uint32_t layer_count = 0;
+	vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+	std::vector<VkLayerProperties> layers(layer_count);
+	vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
+
+	return std::move(layers);
+}
+
+template <class Itor>
+bool Application::check_layers_support(Itor first, Itor last) {
+	auto all_layers = layers();
+
+	for (; first != last; ++first) {
+		if (find_if(all_layers.begin(), all_layers.end(), [layer_name = *first](VkLayerProperties& l) {
+				return strcmp(l.layerName, layer_name) == 0;
+			}) == all_layers.end()) {
 			return false;
 		}
 	}
