@@ -13,7 +13,10 @@ private:
 
 private:
 	void create_instance();
-	std::vector<VkExtensionProperties> instance_extensions();
+
+	std::vector<VkExtensionProperties> extensions(const char* layer_name = nullptr);
+	template <class Itor>
+	bool check_extensions_support(Itor first, Itor last, const char* layer_name = nullptr);
 
 private:
 	GLFWwindow* _window;
