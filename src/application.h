@@ -35,6 +35,8 @@ private:
 	void pick_physical_device();
 	bool is_device_suitable(VkPhysicalDevice device);
 
+	void create_logic_device();
+
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -50,4 +52,7 @@ private:
 	VkDebugUtilsMessengerEXT _debug_messenger;
 
 	VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
+
+	VkDevice _device;
+	VkQueue _graphics_queue;
 };

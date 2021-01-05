@@ -38,6 +38,7 @@ void Application::init_vulkan() {
 	create_instance();
 	setup_debug_messenger();
 	pick_physical_device();
+	create_logic_device();
 }
 
 void Application::main_loop() {
@@ -47,6 +48,7 @@ void Application::main_loop() {
 }
 
 void Application::cleanup() {
+	vkDestroyDevice(_device, nullptr);
 	teardown_debug_messenger();
 	vkDestroyInstance(_instance, nullptr);
 
@@ -259,4 +261,38 @@ void Application::pick_physical_device() {
 
 bool Application::is_device_suitable(VkPhysicalDevice device) {
 	return find_queue_family(device, VK_QUEUE_GRAPHICS_BIT).has_value();
+}
+
+void Application::create_logic_device() {
+	auto graphics_family = find_queue_family(_physical_device, VK_QUEUE_GRAPHICS_BIT);
+
+	VkDeviceQueueCreateInfo queueCreateInfo{};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = graphics_family.value();
+	queueCreateInfo.queueCount = 1;
+	float queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	VkPhysicalDeviceFeatures deviceFeatures{};
+
+	VkDeviceCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledExtensionCount = 0;
+
+	// we don't need it now
+	if (enable_validation_layers) {
+	    createInfo.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
+	    createInfo.ppEnabledLayerNames = validation_layers.data();
+	} else {
+	    createInfo.enabledLayerCount = 0;
+	}
+
+	if (vkCreateDevice(_physical_device, &createInfo, nullptr, &_device) != VK_SUCCESS) {
+ 	   throw std::runtime_error("failed to create logical device!");
+	}
+
+	vkGetDeviceQueue(_device, graphics_family.value(), 0, &_graphics_queue);
 }
