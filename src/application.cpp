@@ -68,22 +68,6 @@ void Application::create_instance() {
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	create_info.pApplicationInfo = &app_info;
 
-	// extensions
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	if (!check_extensions_support(glfwExtensions, glfwExtensions + glfwExtensionCount)) {
-		throw std::runtime_error("not all glfw extensions supported!");
-	}
-    
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-	if (enable_validation_layers) {
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-    create_info.enabledExtensionCount = extensions.size();
-    create_info.ppEnabledExtensionNames = extensions.data();
-
 	// layers
 	if (enable_validation_layers) {
 		if (!check_layers_support(validation_layers.begin(), validation_layers.end())) {
@@ -94,6 +78,26 @@ void Application::create_instance() {
 	} else {
 		create_info.enabledLayerCount = 0;
 	}
+
+	// extensions
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions;
+	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	if (!check_extensions_support(glfwExtensions, glfwExtensions + glfwExtensionCount)) {
+		throw std::runtime_error("not all glfw extensions supported!");
+	}
+    
+    VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	if (enable_validation_layers) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+        populate_debug_messenger_create_info(debug_create_info);
+		create_info.pNext = &debug_create_info;
+    }
+    create_info.enabledExtensionCount = extensions.size();
+    create_info.ppEnabledExtensionNames = extensions.data();
 	
 	if (vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create instance!");
@@ -160,6 +164,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::debug_callback(
     return VK_FALSE;
 }
 
+void Application::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info) {
+	create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    create_info.pfnUserCallback = debug_callback;
+}
+
 static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -173,14 +185,10 @@ void Application::setup_debug_messenger() {
 	if (!enable_validation_layers) {
 		return;
 	}
-	VkDebugUtilsMessengerCreateInfoEXT createInfo {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debug_callback;
-	createInfo.pUserData = nullptr; // Optional
+	VkDebugUtilsMessengerCreateInfoEXT create_info;
+	populate_debug_messenger_create_info(create_info);
 
-	if (CreateDebugUtilsMessengerEXT(_instance, &createInfo, nullptr, &_debug_messenger) != VK_SUCCESS) {
+	if (CreateDebugUtilsMessengerEXT(_instance, &create_info, nullptr, &_debug_messenger) != VK_SUCCESS) {
 	    throw std::runtime_error("failed to set up debug messenger!");
 	}
 }

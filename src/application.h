@@ -22,6 +22,7 @@ private:
 	template <class Itor>
 	bool check_layers_support(Itor first, Itor last);
 
+	void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info);
 	void setup_debug_messenger();
 	void teardown_debug_messenger();
 
