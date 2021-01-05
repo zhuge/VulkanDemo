@@ -37,6 +37,7 @@ void Application::init_window() {
 void Application::init_vulkan() {
 	create_instance();
 	setup_debug_messenger();
+	pick_physical_device();
 }
 
 void Application::main_loop() {
@@ -208,3 +209,54 @@ void Application::teardown_debug_messenger() {
 	DestroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
 }
 
+std::vector<VkPhysicalDevice> Application::physical_devices() {
+	uint32_t count = 0;
+	vkEnumeratePhysicalDevices(_instance, &count, nullptr);
+	if (count == 0) {
+		throw std::runtime_error("failed to find GPUs with Vulkan support!");
+	}
+
+	std::vector<VkPhysicalDevice> devices(count);
+	vkEnumeratePhysicalDevices(_instance, &count, devices.data());
+
+	return std::move(devices);
+}
+
+std::vector<VkQueueFamilyProperties> Application::queue_families(VkPhysicalDevice device) {
+	uint32_t count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+	if (count == 0) {
+		return std::vector<VkQueueFamilyProperties>();
+	}
+
+	std::vector<VkQueueFamilyProperties> families(count);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
+
+	return std::move(families);
+}
+
+std::optional<uint32_t> Application::find_queue_family(VkPhysicalDevice device, uint32_t queue_flags) {
+	auto families = queue_families(device);
+	for (size_t i=0; i<families.size(); ++i) {
+		if (families[i].queueFlags & queue_flags) {
+			return i;
+		}
+	}
+
+	return std::optional<uint32_t>();
+}
+
+void Application::pick_physical_device() {
+	for (auto& device : physical_devices()) {
+		if (is_device_suitable(device)) {
+			_physical_device = device;
+			return;
+		}
+	}
+
+	throw std::runtime_error("no suitable device");
+}
+
+bool Application::is_device_suitable(VkPhysicalDevice device) {
+	return find_queue_family(device, VK_QUEUE_GRAPHICS_BIT).has_value();
+}

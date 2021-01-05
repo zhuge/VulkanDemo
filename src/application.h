@@ -1,6 +1,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <optional>
+
 class Application {
 public:
 	void run();
@@ -26,6 +28,13 @@ private:
 	void setup_debug_messenger();
 	void teardown_debug_messenger();
 
+	std::vector<VkPhysicalDevice> physical_devices();
+	std::vector<VkQueueFamilyProperties> queue_families(VkPhysicalDevice device);
+	std::optional<uint32_t> find_queue_family(VkPhysicalDevice device, uint32_t queue_flags);
+
+	void pick_physical_device();
+	bool is_device_suitable(VkPhysicalDevice device);
+
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -39,4 +48,6 @@ private:
 	VkInstance _instance;
 
 	VkDebugUtilsMessengerEXT _debug_messenger;
+
+	VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
 };
