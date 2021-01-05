@@ -22,8 +22,20 @@ private:
 	template <class Itor>
 	bool check_layers_support(Itor first, Itor last);
 
+	void setup_debug_messenger();
+	void teardown_debug_messenger();
+
+public:
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	    VkDebugUtilsMessageTypeFlagsEXT messageType,
+	    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	    void* pUserData);
+
 private:
 	GLFWwindow* _window;
 
 	VkInstance _instance;
+
+	VkDebugUtilsMessengerEXT _debug_messenger;
 };
