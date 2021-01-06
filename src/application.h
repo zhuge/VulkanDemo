@@ -28,9 +28,11 @@ private:
 	void setup_debug_messenger();
 	void teardown_debug_messenger();
 
+	void create_surface();
+
 	std::vector<VkPhysicalDevice> physical_devices();
 	std::vector<VkQueueFamilyProperties> queue_families(VkPhysicalDevice device);
-	std::optional<uint32_t> find_queue_family(VkPhysicalDevice device, uint32_t queue_flags);
+	std::optional<uint32_t> find_queue_family(VkPhysicalDevice device, uint32_t queue_flags, VkSurfaceKHR surface = VK_NULL_HANDLE);
 
 	void pick_physical_device();
 	bool is_device_suitable(VkPhysicalDevice device);
@@ -48,11 +50,14 @@ private:
 	GLFWwindow* _window;
 
 	VkInstance _instance;
-
+	
 	VkDebugUtilsMessengerEXT _debug_messenger;
+
+	VkSurfaceKHR _surface;
 
 	VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
 
 	VkDevice _device;
 	VkQueue _graphics_queue;
+	VkQueue _present_queue;
 };

@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <set>
 
 #include "application.h"
 
@@ -37,6 +38,7 @@ void Application::init_window() {
 void Application::init_vulkan() {
 	create_instance();
 	setup_debug_messenger();
+	create_surface();
 	pick_physical_device();
 	create_logic_device();
 }
@@ -49,6 +51,7 @@ void Application::main_loop() {
 
 void Application::cleanup() {
 	vkDestroyDevice(_device, nullptr);
+	vkDestroySurfaceKHR(_instance, _surface, nullptr);
 	teardown_debug_messenger();
 	vkDestroyInstance(_instance, nullptr);
 
@@ -211,6 +214,12 @@ void Application::teardown_debug_messenger() {
 	DestroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
 }
 
+void Application::create_surface() {
+	if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface");
+	}
+}
+
 std::vector<VkPhysicalDevice> Application::physical_devices() {
 	uint32_t count = 0;
 	vkEnumeratePhysicalDevices(_instance, &count, nullptr);
@@ -237,10 +246,25 @@ std::vector<VkQueueFamilyProperties> Application::queue_families(VkPhysicalDevic
 	return std::move(families);
 }
 
-std::optional<uint32_t> Application::find_queue_family(VkPhysicalDevice device, uint32_t queue_flags) {
+std::optional<uint32_t> Application::find_queue_family(VkPhysicalDevice device, uint32_t queue_flags, VkSurfaceKHR surface) {
+	auto is_surface_support = [device, surface](size_t i) {
+		if (surface == VK_NULL_HANDLE) {
+			return true;
+		}
+
+		VkBool32 surface_support = VK_FALSE;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &surface_support);
+		return surface_support == VK_TRUE;
+	};
+
+	auto is_queue_flags_ok = [queue_flags](VkQueueFlags flags) {
+		return queue_flags == 0 || (flags & queue_flags) != 0;
+	};
+
 	auto families = queue_families(device);
 	for (size_t i=0; i<families.size(); ++i) {
-		if (families[i].queueFlags & queue_flags) {
+		if (is_queue_flags_ok(families[i].queueFlags) 
+			&& is_surface_support(i))  {
 			return i;
 		}
 	}
@@ -260,25 +284,34 @@ void Application::pick_physical_device() {
 }
 
 bool Application::is_device_suitable(VkPhysicalDevice device) {
-	return find_queue_family(device, VK_QUEUE_GRAPHICS_BIT).has_value();
+	return find_queue_family(device, VK_QUEUE_GRAPHICS_BIT).has_value()
+		&& find_queue_family(device, 0, _surface).has_value();
 }
 
 void Application::create_logic_device() {
 	auto graphics_family = find_queue_family(_physical_device, VK_QUEUE_GRAPHICS_BIT);
+	auto present_family = find_queue_family(_physical_device, 0, _surface);
 
-	VkDeviceQueueCreateInfo queueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = graphics_family.value();
-	queueCreateInfo.queueCount = 1;
+	std::set unique_queue_families = {graphics_family.value(), present_family.value()};
+	std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+
 	float queuePriority = 1.0f;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
+	for (auto family : unique_queue_families) {
+		VkDeviceQueueCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		info.queueFamilyIndex = family;
+		info.queueCount = 1;
+		info.pQueuePriorities = &queuePriority;
+
+		queue_create_infos.push_back(info);
+	}
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
-	createInfo.queueCreateInfoCount = 1;
+	createInfo.pQueueCreateInfos = queue_create_infos.data();
+	createInfo.queueCreateInfoCount = queue_create_infos.size();
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.enabledExtensionCount = 0;
 
@@ -295,4 +328,5 @@ void Application::create_logic_device() {
 	}
 
 	vkGetDeviceQueue(_device, graphics_family.value(), 0, &_graphics_queue);
+	vkGetDeviceQueue(_device, present_family.value(), 0, &_present_queue);
 }
