@@ -61,12 +61,17 @@ private:
 	void create_swap_chain();
 	void create_image_views();
 
+	void create_pipeline();
+	VkShaderModule create_shader_module(const std::vector<char>& buffer);
+
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	    VkDebugUtilsMessageTypeFlagsEXT messageType,
 	    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	    void* pUserData);
+
+	static std::vector<char> read_file(const std::string& filename);
 
 private:
 	GLFWwindow* _window;
