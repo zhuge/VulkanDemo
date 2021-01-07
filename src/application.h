@@ -111,6 +111,13 @@ private:
 	void create_vertex_buffer();
 	uint32_t find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties);
 
+	void create_buffer(VkDeviceSize size, 
+		VkBufferUsageFlags usage, 
+		VkMemoryPropertyFlags properties, 
+		VkBuffer& buffer,
+		VkDeviceMemory& buffer_memory);
+	void copy_buffer(VkBuffer src, VkBuffer dest, VkDeviceSize size);
+
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
