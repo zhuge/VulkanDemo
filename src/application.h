@@ -93,4 +93,6 @@ private:
 	VkFormat _swap_chain_format;
 	VkExtent2D _swap_chain_extent;
 	std::vector<VkImageView> _swap_chain_image_views;
+
+	VkPipelineLayout _pipeline_layout;
 };
