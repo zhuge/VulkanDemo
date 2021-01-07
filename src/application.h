@@ -95,6 +95,7 @@ private:
 	VkExtent2D _swap_chain_extent;
 	std::vector<VkImageView> _swap_chain_image_views;
 
+	VkPipeline _pipeline;
 	VkPipelineLayout _pipeline_layout;
 	VkRenderPass _render_pass;
 };
