@@ -48,6 +48,7 @@ void Application::init_vulkan() {
 	create_logic_device();
 	create_swap_chain();
 	create_image_views();
+	create_render_pass();
 	create_pipeline();
 }
 
@@ -59,7 +60,7 @@ void Application::main_loop() {
 
 void Application::cleanup() {
 	vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
-
+	vkDestroyRenderPass(_device, _render_pass, nullptr);
 	for (auto imageView : _swap_chain_image_views) {
         vkDestroyImageView(_device, imageView, nullptr);
     }
@@ -628,6 +629,38 @@ void Application::create_pipeline() {
 
     vkDestroyShaderModule(_device, fragShaderModule, nullptr);
     vkDestroyShaderModule(_device, vertShaderModule, nullptr);
+}
+
+void Application::create_render_pass() {
+	VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = _swap_chain_format;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef{};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+
+	VkRenderPassCreateInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	if (vkCreateRenderPass(_device, &renderPassInfo, nullptr, &_render_pass) != VK_SUCCESS) {
+	    throw std::runtime_error("failed to create render pass!");
+	}
 }
 
 VkShaderModule Application::create_shader_module(const std::vector<char>& code) {

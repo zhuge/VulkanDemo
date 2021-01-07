@@ -64,6 +64,7 @@ private:
 	void create_pipeline();
 	VkShaderModule create_shader_module(const std::vector<char>& buffer);
 
+	void create_render_pass();
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -95,4 +96,5 @@ private:
 	std::vector<VkImageView> _swap_chain_image_views;
 
 	VkPipelineLayout _pipeline_layout;
+	VkRenderPass _render_pass;
 };
