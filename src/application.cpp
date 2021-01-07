@@ -50,6 +50,7 @@ void Application::init_vulkan() {
 	create_image_views();
 	create_render_pass();
 	create_pipeline();
+	create_framebuffers();
 }
 
 void Application::main_loop() {
@@ -59,6 +60,10 @@ void Application::main_loop() {
 }
 
 void Application::cleanup() {
+	for (auto framebuffer : _swap_chain_framebuffers) {
+        vkDestroyFramebuffer(_device, framebuffer, nullptr);
+    }
+
 	vkDestroyPipeline(_device, _pipeline, nullptr);
 	vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
 	vkDestroyRenderPass(_device, _render_pass, nullptr);
@@ -720,4 +725,24 @@ std::vector<char> Application::read_file(const std::string& filename) {
 	return std::move(buffer);
 }
 
+void Application::create_framebuffers() {
+	_swap_chain_framebuffers.resize(_swap_chain_image_views.size());
+	for (size_t i = 0; i < _swap_chain_image_views.size(); i++) {
+	    VkImageView attachments[] = {
+	        _swap_chain_image_views[i]
+	    };
 
+	    VkFramebufferCreateInfo framebufferInfo{};
+	    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	    framebufferInfo.renderPass = _render_pass;
+	    framebufferInfo.attachmentCount = 1;
+	    framebufferInfo.pAttachments = attachments;
+	    framebufferInfo.width = _swap_chain_extent.width;
+	    framebufferInfo.height = _swap_chain_extent.height;
+	    framebufferInfo.layers = 1;
+
+	    if (vkCreateFramebuffer(_device, &framebufferInfo, nullptr, &_swap_chain_framebuffers[i]) != VK_SUCCESS) {
+	        throw std::runtime_error("failed to create framebuffer!");
+	    }
+	}
+}
