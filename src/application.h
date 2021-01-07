@@ -109,6 +109,7 @@ private:
 	void create_sync_objects();
 
 	void create_vertex_buffer();
+	void create_index_buffer();
 	uint32_t find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties);
 
 	void create_buffer(VkDeviceSize size, 
@@ -170,4 +171,7 @@ private:
 
 	VkBuffer _vertex_buffer;
 	VkDeviceMemory _vertex_buffer_memory;
+
+	VkBuffer _index_buffer;
+	VkDeviceMemory _index_buffer_memory;
 };

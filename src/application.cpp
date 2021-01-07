@@ -25,9 +25,14 @@ const std::vector<const char*> used_device_extensions = {
 #endif
 
 const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
 };
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -65,6 +70,7 @@ void Application::init_vulkan() {
 	create_framebuffers();
 	create_command_pool();
 	create_vertex_buffer();
+	create_index_buffer();
 	create_command_buffers();
 	create_sync_objects();
 }
@@ -140,8 +146,12 @@ void Application::cleanup() {
     	vkDestroySemaphore(_device, _image_available_semaphores[i], nullptr);
     	vkDestroyFence(_device, _in_flight_fences[i], nullptr);
 	}
+	vkDestroyBuffer(_device, _index_buffer, nullptr);
+	vkFreeMemory(_device, _index_buffer_memory, nullptr);
+
 	vkDestroyBuffer(_device, _vertex_buffer, nullptr);
 	vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
+
 	vkDestroyCommandPool(_device, _command_pool, nullptr);
 	
 	vkDestroyDevice(_device, nullptr);
@@ -887,7 +897,10 @@ void Application::create_command_buffers() {
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(_command_buffers[i], 0, 1, vertexBuffers, offsets);
 
-		vkCmdDraw(_command_buffers[i], 3, 1, 0, 0);
+		vkCmdBindIndexBuffer(_command_buffers[i], _index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+		vkCmdDrawIndexed(_command_buffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		
 		vkCmdEndRenderPass(_command_buffers[i]);
 		if (vkEndCommandBuffer(_command_buffers[i]) != VK_SUCCESS) {
 		    throw std::runtime_error("failed to record command buffer!");
@@ -976,6 +989,34 @@ void Application::create_vertex_buffer() {
 		_vertex_buffer_memory);
 
 	copy_buffer(stagingBuffer, _vertex_buffer, size);
+
+	vkDestroyBuffer(_device, stagingBuffer, nullptr);
+    vkFreeMemory(_device, stagingBufferMemory, nullptr);
+}
+
+void Application::create_index_buffer() {
+    VkDeviceSize size = sizeof(indices[0]) * indices.size();
+
+	VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    create_buffer(size, 
+    	VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+    	stagingBuffer, 
+    	stagingBufferMemory);
+
+    void* data;
+	vkMapMemory(_device, stagingBufferMemory, 0, size, 0, &data);
+    memcpy(data, indices.data(), (size_t)size);
+	vkUnmapMemory(_device, stagingBufferMemory);
+
+	create_buffer(size,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT| VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		_index_buffer,
+		_index_buffer_memory);
+
+	copy_buffer(stagingBuffer, _index_buffer, size);
 
 	vkDestroyBuffer(_device, stagingBuffer, nullptr);
     vkFreeMemory(_device, stagingBufferMemory, nullptr);
