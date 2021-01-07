@@ -67,6 +67,9 @@ private:
 	void create_render_pass();
 
 	void create_framebuffers();
+
+	void create_command_pool();
+	void create_command_buffers();
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -101,4 +104,7 @@ private:
 	VkPipeline _pipeline;
 	VkPipelineLayout _pipeline_layout;
 	VkRenderPass _render_pass;
+
+	VkCommandPool _command_pool;
+	std::vector<VkCommandBuffer> _command_buffers;
 };
