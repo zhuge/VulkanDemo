@@ -72,7 +72,7 @@ private:
 	void create_command_pool();
 	void create_command_buffers();
 
-	void create_semaphores();
+	void create_sync_objects();
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -111,6 +111,10 @@ private:
 	VkCommandPool _command_pool;
 	std::vector<VkCommandBuffer> _command_buffers;
 
-	VkSemaphore _image_available_semaphore;
-	VkSemaphore _render_finished_semaphore;
+	std::vector<VkSemaphore> _image_available_semaphores;
+	std::vector<VkSemaphore> _render_finished_semaphores;
+	std::vector<VkFence> _in_flight_fences;
+	std::vector<VkFence> _in_flight_image_fences;
+
+	size_t _current_frame = 0;
 };

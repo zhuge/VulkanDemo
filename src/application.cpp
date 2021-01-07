@@ -53,7 +53,7 @@ void Application::init_vulkan() {
 	create_framebuffers();
 	create_command_pool();
 	create_command_buffers();
-	create_semaphores();
+	create_sync_objects();
 }
 
 void Application::main_loop() {
@@ -66,24 +66,31 @@ void Application::main_loop() {
 }
 
 void Application::draw_frame() {
+	vkWaitForFences(_device, 1, &_in_flight_fences[_current_frame], VK_TRUE, UINT64_MAX);
+
 	uint32_t imageIndex;
-    vkAcquireNextImageKHR(_device, _swap_chain, UINT64_MAX, _image_available_semaphore, VK_NULL_HANDLE, &imageIndex);
+    vkAcquireNextImageKHR(_device, _swap_chain, UINT64_MAX, _image_available_semaphores[_current_frame], VK_NULL_HANDLE, &imageIndex);
+    if (_in_flight_image_fences[imageIndex] != VK_NULL_HANDLE) {
+    	vkWaitForFences(_device, 1, &_in_flight_image_fences[imageIndex], VK_TRUE, UINT64_MAX);
+    }
+    _in_flight_image_fences[imageIndex] = _in_flight_fences[_current_frame];
 
     VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = {_image_available_semaphore};
+	VkSemaphore waitSemaphores[] = {_image_available_semaphores[_current_frame]};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &_command_buffers[imageIndex];
-	VkSemaphore signalSemaphores[] = {_render_finished_semaphore};
+	VkSemaphore signalSemaphores[] = {_render_finished_semaphores[_current_frame]};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(_graphics_queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+	vkResetFences(_device, 1, &_in_flight_fences[_current_frame]);
+	if (vkQueueSubmit(_graphics_queue, 1, &submitInfo, _in_flight_fences[_current_frame]) != VK_SUCCESS) {
  	   throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -100,11 +107,16 @@ void Application::draw_frame() {
 
 	presentInfo.pResults = nullptr; // Optional
 	vkQueuePresentKHR(_present_queue, &presentInfo);
+
+	_current_frame = (_current_frame + 1) % _swap_chain_images.size();
 }
 
 void Application::cleanup() {
-	vkDestroySemaphore(_device, _render_finished_semaphore, nullptr);
-    vkDestroySemaphore(_device, _image_available_semaphore, nullptr);
+	for (size_t i=0; i<_swap_chain_images.size(); ++i) {
+		vkDestroySemaphore(_device, _render_finished_semaphores[i], nullptr);
+    	vkDestroySemaphore(_device, _image_available_semaphores[i], nullptr);
+    	vkDestroyFence(_device, _in_flight_fences[i], nullptr);
+	}
 
 	vkDestroyCommandPool(_device, _command_pool, nullptr);
 
@@ -863,12 +875,24 @@ void Application::create_command_buffers() {
 	}
 }
 
-void Application::create_semaphores() {
+void Application::create_sync_objects() {
+	_image_available_semaphores.resize(_swap_chain_images.size());
+	_render_finished_semaphores.resize(_swap_chain_images.size());
+	_in_flight_fences.resize(_swap_chain_images.size());
+	_in_flight_image_fences.resize(_swap_chain_images.size(), VK_NULL_HANDLE);
+
 	VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if (vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_image_available_semaphore) != VK_SUCCESS ||
-	    vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_render_finished_semaphore) != VK_SUCCESS) {
-	    throw std::runtime_error("failed to create semaphores!");
-	}
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i=0; i<_swap_chain_images.size(); ++i) {
+    	if (vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_image_available_semaphores[i]) != VK_SUCCESS
+    		|| vkCreateSemaphore(_device, &semaphoreInfo, nullptr, &_render_finished_semaphores[i]) != VK_SUCCESS
+    		|| vkCreateFence(_device, &fenceInfo, nullptr, &_in_flight_fences[i]) != VK_SUCCESS) {
+		    throw std::runtime_error("failed to create semaphores!");
+		}
+    }
 }
