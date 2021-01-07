@@ -25,6 +25,9 @@ private:
 	void cleanup();
 
 	void draw_frame();
+public:
+	void set_framebuffer_resized() {_framebuffer_resized = true;}
+
 private:
 	void create_instance();
 
@@ -73,6 +76,10 @@ private:
 	void create_command_buffers();
 
 	void create_sync_objects();
+
+private:
+	void cleanup_swap_chain();
+	void recreate_swap_chain();
 public:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -117,4 +124,6 @@ private:
 	std::vector<VkFence> _in_flight_image_fences;
 
 	size_t _current_frame = 0;
+
+	bool _framebuffer_resized = false;
 };
