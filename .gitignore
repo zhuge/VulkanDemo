@@ -33,3 +33,6 @@
 
 # Build dir
 build
+
+# mac tmp file
+.DS_Store
