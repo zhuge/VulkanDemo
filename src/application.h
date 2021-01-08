@@ -35,6 +35,12 @@ struct Vertex {
 	}
 };
 
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
 struct SwapChainDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -96,6 +102,7 @@ private:
 	void create_swap_chain();
 	void create_image_views();
 
+	void create_descriptor_layout();
 	void create_pipeline();
 	VkShaderModule create_shader_module(const std::vector<char>& buffer);
 
@@ -118,6 +125,12 @@ private:
 		VkBuffer& buffer,
 		VkDeviceMemory& buffer_memory);
 	void copy_buffer(VkBuffer src, VkBuffer dest, VkDeviceSize size);
+
+	void create_uniform_buffers();
+	void update_uniform_buffer(uint32_t current_image);
+
+	void create_descriptor_pool();
+	void create_descriptor_sets();
 
 private:
 	void cleanup_swap_chain();
@@ -154,6 +167,7 @@ private:
 	std::vector<VkFramebuffer> _swap_chain_framebuffers;
 
 	VkPipeline _pipeline;
+	VkDescriptorSetLayout _descriptor_layout;
 	VkPipelineLayout _pipeline_layout;
 	VkRenderPass _render_pass;
 
@@ -174,4 +188,10 @@ private:
 
 	VkBuffer _index_buffer;
 	VkDeviceMemory _index_buffer_memory;
+
+	std::vector<VkBuffer> _uniform_buffers;
+	std::vector<VkDeviceMemory> _uniform_buffers_memory;
+
+	VkDescriptorPool _descriptor_pool;
+	std::vector<VkDescriptorSet> _descriptor_sets;
 };
