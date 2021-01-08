@@ -11,6 +11,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw)
 include_directories(
 	thirdparty/glfw/include
 	thirdparty/glm
+	thirdparty/stb
 )
 
 set(EXTERN_LIBS 
@@ -36,3 +37,6 @@ foreach(INPUT_PATH ${SHADERS})
 		DEPENDS ${INPUT_PATH} 
   	)
 endforeach()
+
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
+     SYMBOLIC)
