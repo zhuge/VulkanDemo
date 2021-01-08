@@ -142,6 +142,10 @@ private:
 
 	void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	void create_texture_image_view();
+	VkImageView create_image_view(VkImage image, VkFormat format);
+	void create_texture_sampler();
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
@@ -207,4 +211,6 @@ private:
 
 	VkImage _texture_image;
 	VkDeviceMemory _texture_image_memory;
+	VkImageView _texture_image_view;
+	VkSampler _texture_sampler;
 };
