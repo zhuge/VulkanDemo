@@ -156,18 +156,18 @@ private:
 	void create_descriptor_sets();
 
 	void create_texture_image();
-	void create_image(uint32_t width, uint32_t height, VkFormat format, 
+	void create_image(uint32_t width, uint32_t height, uint32_t mipmap_levels, VkFormat format, 
 		VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, 
 		VkImage& image, VkDeviceMemory& imageMemory);
 
 	VkCommandBuffer begin_single_time_command();
 	void end_single_time_command(VkCommandBuffer command);
 
-	void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipmap_levels);
 	void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 	void create_texture_image_view();
-	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipmap_levels);
 	void create_texture_sampler();
 
 	void create_depth_resources();
@@ -176,6 +176,8 @@ private:
 	bool has_stencil_component(VkFormat format);
 
 	void load_model();
+
+	void generate_mipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
@@ -246,6 +248,7 @@ private:
 	VkDeviceMemory _texture_image_memory;
 	VkImageView _texture_image_view;
 	VkSampler _texture_sampler;
+	uint32_t _texture_mipmap_levels;
 
 	VkImage _depth_image;
 	VkImageView _depth_image_view;
