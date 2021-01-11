@@ -156,7 +156,7 @@ private:
 	void create_descriptor_sets();
 
 	void create_texture_image();
-	void create_image(uint32_t width, uint32_t height, uint32_t mipmap_levels, VkFormat format, 
+	void create_image(uint32_t width, uint32_t height, uint32_t mipmap_levels, VkSampleCountFlagBits numSamples, VkFormat format, 
 		VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, 
 		VkImage& image, VkDeviceMemory& imageMemory);
 
@@ -178,6 +178,9 @@ private:
 	void load_model();
 
 	void generate_mipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
+	VkSampleCountFlagBits get_max_usable_sample_count();
+	void create_color_resources();
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
@@ -253,4 +256,10 @@ private:
 	VkImage _depth_image;
 	VkImageView _depth_image_view;
 	VkDeviceMemory _depth_image_memory;
+
+	VkSampleCountFlagBits _msaa_samples = VK_SAMPLE_COUNT_1_BIT;
+
+	VkImage _color_image;
+	VkDeviceMemory _color_image_memory;
+	VkImageView _color_image_view;
 };
