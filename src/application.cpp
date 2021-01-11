@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <set>
+#include <unordered_map>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
@@ -13,12 +14,18 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
 #include <chrono>
 
 #include "application.h"
 
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
+
+static const std::string MODEL_PATH = "assets/models/viking_room.obj";
+static const std::string TEXTURE_PATH = "assets/textures/viking_room.png";
 
 static const std::vector<const char*> validation_layers = {
     "VK_LAYER_KHRONOS_validation"
@@ -33,23 +40,6 @@ const std::vector<const char*> used_device_extensions = {
 #else
     static const bool enable_validation_layers = true;
 #endif
-
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> indices = {
-	0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-};
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
     auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -90,6 +80,7 @@ void Application::init_vulkan() {
 	create_texture_image();
 	create_texture_image_view();
 	create_texture_sampler();
+	load_model();
 	create_vertex_buffer();
 	create_index_buffer();
 	create_uniform_buffers();
@@ -947,9 +938,9 @@ void Application::create_command_buffers() {
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(_command_buffers[i], 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(_command_buffers[i], _index_buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(_command_buffers[i], _index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(_command_buffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(_command_buffers[i], static_cast<uint32_t>(_indices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(_command_buffers[i]);
 		if (vkEndCommandBuffer(_command_buffers[i]) != VK_SUCCESS) {
@@ -1033,7 +1024,7 @@ void Application::recreate_swap_chain() {
 }
 
 void Application::create_vertex_buffer() {
-	VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize size = sizeof(_vertices[0]) * _vertices.size();
 
 	VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1045,7 +1036,7 @@ void Application::create_vertex_buffer() {
 
     void* data;
 	vkMapMemory(_device, stagingBufferMemory, 0, size, 0, &data);
-    memcpy(data, vertices.data(), (size_t)size);
+    memcpy(data, _vertices.data(), (size_t)size);
 	vkUnmapMemory(_device, stagingBufferMemory);
 
 	create_buffer(size,
@@ -1061,7 +1052,7 @@ void Application::create_vertex_buffer() {
 }
 
 void Application::create_index_buffer() {
-    VkDeviceSize size = sizeof(indices[0]) * indices.size();
+    VkDeviceSize size = sizeof(_indices[0]) * _indices.size();
 
 	VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1073,7 +1064,7 @@ void Application::create_index_buffer() {
 
     void* data;
 	vkMapMemory(_device, stagingBufferMemory, 0, size, 0, &data);
-    memcpy(data, indices.data(), (size_t)size);
+    memcpy(data, _indices.data(), (size_t)size);
 	vkUnmapMemory(_device, stagingBufferMemory);
 
 	create_buffer(size,
@@ -1192,7 +1183,7 @@ void Application::update_uniform_buffer(uint32_t current_image) {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(9.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), _swap_chain_extent.width / (float) _swap_chain_extent.height, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
@@ -1269,7 +1260,7 @@ void Application::create_descriptor_sets() {
 
 void Application::create_texture_image() {
 	int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("assets/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {
@@ -1575,6 +1566,44 @@ VkFormat Application::find_depth_format() {
 
 bool Application::has_stencil_component(VkFormat format) {
 	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+void Application::load_model() {
+	tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+        throw std::runtime_error(warn + err);
+    }
+
+    std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+    for (const auto& shape : shapes) {
+	    for (const auto& index : shape.mesh.indices) {
+	        Vertex vertex{};
+
+	        vertex.pos = {
+			    attrib.vertices[3 * index.vertex_index + 0],
+			    attrib.vertices[3 * index.vertex_index + 1],
+			    attrib.vertices[3 * index.vertex_index + 2]
+			};
+
+			vertex.texCoord = {
+			    attrib.texcoords[2 * index.texcoord_index + 0],
+			    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+			};
+
+			vertex.color = {1.0f, 1.0f, 1.0f};
+
+			if (uniqueVertices.count(vertex) == 0) {
+	            uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
+	            _vertices.push_back(vertex);
+	        }
+
+	        _indices.push_back(uniqueVertices[vertex]);
+	    }
+	}
 }
 
 

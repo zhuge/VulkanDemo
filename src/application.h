@@ -6,6 +6,9 @@
 #include <array>
 #include <glm/glm.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
@@ -39,7 +42,21 @@ struct Vertex {
 
     	return attributeDescriptions;
 	}
+
+	bool operator==(const Vertex& other) const {
+	    return pos == other.pos && color == other.color && texCoord == other.texCoord;
+	}
 };
+
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                   (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+}
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -157,6 +174,8 @@ private:
 	VkFormat find_support_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	VkFormat find_depth_format();
 	bool has_stencil_component(VkFormat format);
+
+	void load_model();
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
@@ -207,6 +226,9 @@ private:
 	size_t _current_frame = 0;
 
 	bool _framebuffer_resized = false;
+
+	std::vector<Vertex> _vertices;
+	std::vector<uint32_t> _indices;
 
 	VkBuffer _vertex_buffer;
 	VkDeviceMemory _vertex_buffer_memory;

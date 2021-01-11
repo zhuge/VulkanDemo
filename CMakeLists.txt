@@ -12,6 +12,7 @@ include_directories(
 	thirdparty/glfw/include
 	thirdparty/glm
 	thirdparty/stb
+	thirdparty/tinyobj
 )
 
 set(EXTERN_LIBS 
