@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 struct Vertex {
-    glm::vec2 pos;
+    glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
 
@@ -24,7 +24,7 @@ struct Vertex {
     	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
     	attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
 		attributeDescriptions[1].binding = 0;
@@ -150,8 +150,13 @@ private:
 	void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 	void create_texture_image_view();
-	VkImageView create_image_view(VkImage image, VkFormat format);
+	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	void create_texture_sampler();
+
+	void create_depth_resources();
+	VkFormat find_support_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	VkFormat find_depth_format();
+	bool has_stencil_component(VkFormat format);
 private:
 	void cleanup_swap_chain();
 	void recreate_swap_chain();
@@ -219,4 +224,8 @@ private:
 	VkDeviceMemory _texture_image_memory;
 	VkImageView _texture_image_view;
 	VkSampler _texture_sampler;
+
+	VkImage _depth_image;
+	VkImageView _depth_image_view;
+	VkDeviceMemory _depth_image_memory;
 };
